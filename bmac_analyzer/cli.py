@@ -139,7 +139,7 @@ def _display_stats_tables(stats: dict, creator_id: str, coffee_price: float):
     patterns_table.add_column("Count", style="green", justify="right")
 
     patterns = stats["support_patterns"]
-    for coffees, count in patterns["coffee_distribution"].items():
+    for coffees, count in sorted(patterns["coffee_distribution"].items(), key=lambda x: int(x[0])):
         total_amount = int(coffees) * coffee_price * count
         patterns_table.add_row(
             f"{coffees} Coffee{'s' if int(coffees) > 1 else ''}",
