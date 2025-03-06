@@ -2,6 +2,7 @@ import click
 import json
 from pathlib import Path
 from datetime import datetime
+import numpy as np
 from rich.console import Console
 from rich.table import Table
 from rich import print as rprint
@@ -9,6 +10,17 @@ from typing import Optional
 from .analyzer import BuyMeACoffeeAnalyzer
 
 console = Console()
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(np, 'integer') and isinstance(obj, np.integer):
+            return int(obj)
+        if hasattr(np, 'floating') and isinstance(obj, np.floating):
+            return float(obj)
+        if hasattr(np, 'ndarray') and isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NumpyEncoder, self).default(obj)
 
 
 def format_currency(amount: float) -> str:
@@ -45,7 +57,7 @@ def stats(creator_id: str, no_cache: bool, format: str, coffee_price: float):
             stats = analyzer.analyze_stats(coffee_price=coffee_price)
 
         if format == "json":
-            click.echo(json.dumps(stats, indent=2))
+            click.echo(json.dumps(stats, indent=2, cls=NumpyEncoder))
         else:
             _display_stats_tables(stats, creator_id, coffee_price)
 
