@@ -23,9 +23,9 @@ class NumpyEncoder(json.JSONEncoder):
         return super(NumpyEncoder, self).default(obj)
 
 
-def format_currency(amount: float) -> str:
-    """Format amount as currency"""
-    return f"${amount:,.2f}"
+def format_currency(amount: float, currency: str = "$") -> str:
+    """Format amount as currency with specified symbol"""
+    return f"{currency}{amount:,.2f}"
 
 
 def get_cache_dir() -> Path:
@@ -49,7 +49,11 @@ def cli():
               help="Output format (table or json)")
 @click.option("--coffee-price", "-p", type=float, default=5.0,
               help="Price per coffee in USD (default: $5.00)")
-def stats(creator_id: str, no_cache: bool, format: str, coffee_price: float):
+@click.option("--currency", "-c",
+              type=click.Choice(["$", "€", "£", "¥"]),
+              default="$",
+              help="Currency symbol (default: $)")
+def stats(creator_id: str, no_cache: bool, format: str, coffee_price: float, currency: str):
     """Get statistics for a Buy Me a Coffee creator"""
     try:
         with console.status(f"[bold green]Analyzing stats for {creator_id}..."):
@@ -59,7 +63,7 @@ def stats(creator_id: str, no_cache: bool, format: str, coffee_price: float):
         if format == "json":
             click.echo(json.dumps(stats, indent=2, cls=NumpyEncoder))
         else:
-            _display_stats_tables(stats, creator_id, coffee_price)
+            _display_stats_tables(stats, creator_id, coffee_price, currency)
 
     except Exception as e:
         console.print(f"[bold red]Error: {str(e)}")
@@ -109,7 +113,7 @@ def clear_all():
     console.print("[green]All cache cleared successfully")
 
 
-def _display_stats_tables(stats: dict, creator_id: str, coffee_price: float):
+def _display_stats_tables(stats: dict, creator_id: str, coffee_price: float, currency: str = "$"):
     """Display statistics in formatted tables"""
     if "Failed" in stats:
         console.print(f"[bold red]{stats['Failed']}")
@@ -123,9 +127,9 @@ def _display_stats_tables(stats: dict, creator_id: str, coffee_price: float):
     summary = stats["summary"]
     summary_table.add_row("Total Supporters", str(summary["total_supporters"]))
     summary_table.add_row("Total Coffees", str(summary["total_coffees"]))
-    summary_table.add_row("Total Earnings", format_currency(summary["total_earnings"]))
+    summary_table.add_row("Total Earnings", format_currency(summary["total_earnings"], currency))
     summary_table.add_row("Avg Coffees/Supporter", f"{summary['average_coffees_per_supporter']:.2f}")
-    summary_table.add_row("Avg Earnings/Supporter", format_currency(summary["average_earnings_per_supporter"]))
+    summary_table.add_row("Avg Earnings/Supporter", format_currency(summary["average_earnings_per_supporter"], currency))
     summary_table.add_row("First Support", summary["first_support"])
     summary_table.add_row("Last Support", summary["last_support"])
     summary_table.add_row("Days Active", str(summary["days_active"]))
@@ -143,7 +147,7 @@ def _display_stats_tables(stats: dict, creator_id: str, coffee_price: float):
         total_amount = int(coffees) * coffee_price * count
         patterns_table.add_row(
             f"{coffees} Coffee{'s' if int(coffees) > 1 else ''}",
-            f"{count} ({format_currency(total_amount)})"
+            f"{count} ({format_currency(total_amount, currency)})"
         )
 
     patterns_table.add_row("With Messages", str(patterns["supporters_with_messages"]))
@@ -165,21 +169,21 @@ def _display_stats_tables(stats: dict, creator_id: str, coffee_price: float):
     trends_table.add_row(
         f"Best Month ({trends['best_month']['date']})",
         str(trends['best_month']['coffees']),
-        format_currency(trends['best_month']['earnings'])
+        format_currency(trends['best_month']['earnings'], currency)
     )
 
     # Worst Month
     trends_table.add_row(
         f"Worst Month ({trends['worst_month']['date']})",
         str(trends['worst_month']['coffees']),
-        format_currency(trends['worst_month']['earnings'])
+        format_currency(trends['worst_month']['earnings'], currency)
     )
 
     # Monthly Averages
     trends_table.add_row(
         "Monthly Average",
         f"{trends['monthly_averages']['coffees']:.1f}",
-        format_currency(trends['monthly_averages']['earnings'])
+        format_currency(trends['monthly_averages']['earnings'], currency)
     )
 
     console.print(trends_table)
